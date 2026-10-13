@@ -58,7 +58,7 @@ class Jeu:
             0, ORIGINE_Y_FOND_TITRE, FICHIER_FOND_TITRE
         )
         pyxel.images[BANQUE_SOL].load(
-            0, 136, FICHIER_SOL
+            0, ORIGINE_Y_SOL, FICHIER_SOL
         )
 
     def update(self):

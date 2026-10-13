@@ -10,7 +10,10 @@ DOSSIER_SPRITES = RACINE_PROJET / "assets" / "sprites"
 CARTE_SOURCE = DOSSIER_CARTES / "level_1.json"
 CARTE_SORTIE = DOSSIER_CARTES / "level_1_pyxel.json"
 IMAGE_SORTIE = DOSSIER_SPRITES / "tileset_compact.png"
+IMAGE_SORTIE_SUPPLEMENTAIRE = DOSSIER_SPRITES / "tileset_compact_2.png"
 COULEUR_TRANSPARENCE = (212, 24, 108, 255)
+CAPACITE_ATLAS = 64
+CAPACITE_ATLAS_SUPPLEMENTAIRE = 24
 
 with CARTE_SOURCE.open("r", encoding="utf-8") as f:
     carte = json.load(f)
@@ -64,21 +67,27 @@ print("Tuiles utilisées :", len(ids_tries))
 with Image.open(image_source) as image:
     image = image.convert("RGBA")
 
-    # Une planche de 8 colonnes tient dans une banque 256 x 256.
     colonnes_compactes = 8
-    lignes_compactes = (len(ids_tries) + 7) // 8
-
-    if lignes_compactes > 8:
+    if len(ids_tries) > CAPACITE_ATLAS + CAPACITE_ATLAS_SUPPLEMENTAIRE:
         raise ValueError(
-            "Plus de 64 tuiles utilisées : il faudra répartir "
-            "la planche sur plusieurs banques."
+            "Le niveau dépasse la capacité de 88 tuiles des deux atlas Pyxel."
         )
 
-    planche = Image.new(
-        "RGBA",
-        (colonnes_compactes * largeur, lignes_compactes * hauteur),
-        COULEUR_TRANSPARENCE,
-    )
+    nombres_par_atlas = [min(len(ids_tries), CAPACITE_ATLAS)]
+    if len(ids_tries) > CAPACITE_ATLAS:
+        nombres_par_atlas.append(len(ids_tries) - CAPACITE_ATLAS)
+    planches = [
+        Image.new(
+            "RGBA",
+            (
+                colonnes_compactes * largeur,
+                ((nombre + colonnes_compactes - 1) // colonnes_compactes)
+                * hauteur,
+            ),
+            COULEUR_TRANSPARENCE,
+        )
+        for nombre in nombres_par_atlas
+    ]
 
     # Ancien GID -> nouvel indice compact.
     correspondance = {}
@@ -89,13 +98,19 @@ with Image.open(image_source) as image:
 
         tuile = image.crop((sx, sy, sx + largeur, sy + hauteur))
 
-        dx = (nouvel_indice % colonnes_compactes) * largeur
-        dy = (nouvel_indice // colonnes_compactes) * hauteur
-        planche.alpha_composite(tuile, (dx, dy))
+        atlas_indice = nouvel_indice // CAPACITE_ATLAS
+        indice_local = nouvel_indice % CAPACITE_ATLAS
+        dx = (indice_local % colonnes_compactes) * largeur
+        dy = (indice_local // colonnes_compactes) * hauteur
+        planches[atlas_indice].alpha_composite(tuile, (dx, dy))
 
         correspondance[ancien_id + firstgid] = nouvel_indice + 1
 
-    planche.save(IMAGE_SORTIE)
+    planches[0].save(IMAGE_SORTIE)
+    if len(planches) > 1:
+        planches[1].save(IMAGE_SORTIE_SUPPLEMENTAIRE)
+    else:
+        IMAGE_SORTIE_SUPPLEMENTAIRE.unlink(missing_ok=True)
 
 # Réécrire les identifiants dans une copie de la carte.
 for couche in carte["layers"]:
@@ -119,34 +134,50 @@ for couche in carte["layers"]:
         couche["data"] = nouvelles_donnees
 
 # Remplacer la référence au tileset externe par un tileset intégré.
-animations_compactes = [
-    {
-        "id": correspondance[tile_id + firstgid] - 1,
-        "animation": [
-            {
-                "tileid": correspondance[frame_tile_id + firstgid] - 1,
-                "duration": duration,
-            }
-            for frame_tile_id, duration in frames
-        ],
-    }
-    for tile_id, frames in animations.items()
-]
+tilesets_compacts = []
+for atlas_indice, nombre in enumerate(nombres_par_atlas):
+    debut = atlas_indice * CAPACITE_ATLAS
+    animations_compactes = []
 
-carte["tilesets"] = [{
-    "firstgid": 1,
-    "name": "tileset_compact",
-    "tilewidth": largeur,
-    "tileheight": hauteur,
-    "tilecount": len(ids_tries),
-    "columns": colonnes_compactes,
-    "image": "../sprites/tileset_compact.png",
-    "imagewidth": colonnes_compactes * largeur,
-    "imageheight": lignes_compactes * hauteur,
-    "margin": 0,
-    "spacing": 0,
-    "tiles": animations_compactes,
-}]
+    for tile_id, frames in animations.items():
+        nouvel_id = correspondance[tile_id + firstgid] - 1
+        if nouvel_id // CAPACITE_ATLAS != atlas_indice:
+            continue
+
+        animations_compactes.append({
+            "id": nouvel_id - debut,
+            "animation": [
+                {
+                    "tileid": correspondance[frame_tile_id + firstgid]
+                    - debut - 1,
+                    "duration": duration,
+                }
+                for frame_tile_id, duration in frames
+            ],
+        })
+
+    lignes = (nombre + colonnes_compactes - 1) // colonnes_compactes
+    nom_image = (
+        "../sprites/tileset_compact.png"
+        if atlas_indice == 0
+        else "../sprites/tileset_compact_2.png"
+    )
+    tilesets_compacts.append({
+        "firstgid": debut + 1,
+        "name": f"tileset_compact_{atlas_indice + 1}",
+        "tilewidth": largeur,
+        "tileheight": hauteur,
+        "tilecount": nombre,
+        "columns": colonnes_compactes,
+        "image": nom_image,
+        "imagewidth": colonnes_compactes * largeur,
+        "imageheight": lignes * hauteur,
+        "margin": 0,
+        "spacing": 0,
+        "tiles": animations_compactes,
+    })
+
+carte["tilesets"] = tilesets_compacts
 
 with CARTE_SORTIE.open("w", encoding="utf-8") as f:
     json.dump(carte, f)

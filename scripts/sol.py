@@ -21,7 +21,7 @@ class Sol:
                 self.y,
                 BANQUE_SOL,
                 0,
-                136,
+                ORIGINE_Y_SOL,
                 TAILLE_TILE,
                 TAILLE_TILE,
                 COULEUR_TRANSPARENCE,

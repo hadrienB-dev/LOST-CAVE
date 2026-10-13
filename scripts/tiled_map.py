@@ -7,9 +7,10 @@ import pyxel
 
 DOSSIER = Path(__file__).resolve().parent.parent / "assets" / "maps"
 TAILLE_TILE = 32
-COLONNES_TILESET = 8
 COULEUR_TRANSPARENCE = 8
 DUREE_ANIMATION_COLLECTE = 18
+BANQUES_TILESET = (2, 1)
+ORIGINES_Y_TILESET = (0, 160)
 NOMS_CALQUES_COLLISION_COMPLETE = {
     "strict_collider",
 }
@@ -20,7 +21,6 @@ NOMS_CALQUES_COLLISION = {
 
 FICHIER_CARTE = DOSSIER / "level_1_pyxel.json"
 FICHIER_COLLISIONS = DOSSIER / "level_1.json"
-FICHIER_TILESET = DOSSIER.parent / "sprites" / "tileset_compact.png"
 
 
 class CarteTiled:
@@ -31,21 +31,30 @@ class CarteTiled:
         with FICHIER_COLLISIONS.open("r", encoding="utf-8") as f:
             self.carte_originale = json.load(f)
 
-        # Charger le tileset compact dans une banque d'images dédiée.
-        # Banque 3 : vérifier qu'elle n'est pas déjà utilisée.
-        self.banque = 2
-        pyxel.images[self.banque].load(
-            0, 0, str(FICHIER_TILESET)
-        )
-        tileset = self.carte["tilesets"][0]
-        self.animations = {
-            tileset["firstgid"] + tuile["id"]: [
-                (tileset["firstgid"] + frame["tileid"], frame["duration"])
-                for frame in tuile["animation"]
-            ]
-            for tuile in tileset.get("tiles", [])
-            if tuile.get("animation")
-        }
+        self.atlas = []
+        self.animations = {}
+        for atlas_index, tileset in enumerate(self.carte["tilesets"]):
+            banque = BANQUES_TILESET[atlas_index]
+            origine_y = ORIGINES_Y_TILESET[atlas_index]
+            image = (FICHIER_CARTE.parent / tileset["image"]).resolve()
+            pyxel.images[banque].load(0, origine_y, str(image))
+            self.atlas.append({
+                "firstgid": tileset["firstgid"],
+                "tilecount": tileset["tilecount"],
+                "columns": tileset["columns"],
+                "bank": banque,
+                "origin_y": origine_y,
+            })
+            for tuile in tileset.get("tiles", []):
+                if not tuile.get("animation"):
+                    continue
+                self.animations[tileset["firstgid"] + tuile["id"]] = [
+                    (
+                        tileset["firstgid"] + frame["tileid"],
+                        frame["duration"],
+                    )
+                    for frame in tuile["animation"]
+                ]
         self.debut_animations = time.perf_counter()
         self.cranes_collectes = {}
 
@@ -123,9 +132,7 @@ class CarteTiled:
                 gid = self.gid_anime(gid, temps_animation_ms)
 
                 # Les GID ont été compactés par prepare_level.py.
-                indice = gid - 1
-                source_x = (indice % COLONNES_TILESET) * TAILLE_TILE
-                source_y = (indice // COLONNES_TILESET) * TAILLE_TILE
+                banque, source_x, source_y = self.source_tuile(gid)
 
                 colonne = index % self.carte["width"]
                 ligne = index // self.carte["width"]
@@ -144,7 +151,7 @@ class CarteTiled:
 
                 pyxel.blt(
                     x, y,
-                    self.banque,
+                    banque,
                     source_x, source_y,
                     TAILLE_TILE, TAILLE_TILE,
                     COULEUR_TRANSPARENCE,
@@ -165,20 +172,34 @@ class CarteTiled:
             ligne = index // self.carte["width"]
             x = colonne * TAILLE_TILE - camera_x
             y = ligne * TAILLE_TILE - camera_y
-            indice = self.gid_anime(
+            gid = self.gid_anime(
                 gid,
                 int((time.perf_counter() - self.debut_animations) * 1000),
-            ) - 1
+            )
+            banque, source_x, source_y = self.source_tuile(gid)
             pyxel.dither(1 - progress)
             pyxel.blt(
                 int(x), int(y),
-                self.banque,
-                (indice % COLONNES_TILESET) * TAILLE_TILE,
-                (indice // COLONNES_TILESET) * TAILLE_TILE,
+                banque,
+                source_x,
+                source_y,
                 TAILLE_TILE, TAILLE_TILE,
                 COULEUR_TRANSPARENCE,
             )
             pyxel.dither(1)
+
+    def source_tuile(self, gid):
+        for atlas in self.atlas:
+            debut = atlas["firstgid"]
+            if debut <= gid < debut + atlas["tilecount"]:
+                indice = gid - debut
+                return (
+                    atlas["bank"],
+                    (indice % atlas["columns"]) * TAILLE_TILE,
+                    atlas["origin_y"]
+                    + (indice // atlas["columns"]) * TAILLE_TILE,
+                )
+        raise ValueError(f"GID de tuile compact introuvable : {gid}")
 
     def mettre_a_jour_cranes_collectes(self):
         couche = next(

@@ -35,9 +35,10 @@ VOLUME_SAUT = 0.04
 # Banques d'images Pyxel
 BANQUE_JOUEUR = 0
 BANQUE_FOND = 1
-BANQUE_SOL = 2
+BANQUE_SOL = 0
 BANQUE_TITRE = 0
 ORIGINE_Y_FOND_TITRE = 64
+ORIGINE_Y_SOL = 224
 
 # Fichiers de ressources
 FICHIER_RESSOURCES = "assets/pyxel/theme.pyxres"
