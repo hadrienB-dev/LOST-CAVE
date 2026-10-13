@@ -2,6 +2,7 @@
 
 import time
 import pyxel
+import pygame
 from .config import *
 from .joueur import Joueur
 from .sol import Sol
@@ -26,13 +27,16 @@ class Jeu:
         self.fps = 0
         self.frames_ecoulees = 0
         self.temps_mesure_fps = time.perf_counter()
-        pyxel.sounds[0].pcm(FICHIER_MUSIQUE)
+        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
         pyxel.channels[1].gain = VOLUME_SAUT
         pyxel.sounds[1].pcm(FICHIER_SAUT)
         pyxel.sounds[3].pcm(FICHIER_FIN_SAUT)
-        pyxel.sounds[2].pcm(FICHIER_MUSIQUE_TITRE)
         pyxel.sounds[4].pcm(FICHIER_COLLECTE_CRANE)
-        pyxel.play(0, 2, loop=True)
+        self.changer_musique(FICHIER_MUSIQUE_TITRE)
+
+    def changer_musique(self, fichier):
+        pygame.mixer.music.load(fichier)
+        pygame.mixer.music.play(-1)
 
     def charger_ressources(self):
         # Charge les ressources du fichier .pyxres
@@ -185,7 +189,7 @@ class Jeu:
         self.dialogue_intro = 0
         self.caracteres_dialogue = 0
         self.frames_caractere_dialogue = 0
-        pyxel.play(0, 0, loop=True)
+        self.changer_musique(FICHIER_MUSIQUE)
 
     def update_fondu(self):
         self.frame_fondu += 1
@@ -214,15 +218,15 @@ class Jeu:
 
     def dessiner_bouton(self, texte, x, y, largeur, hauteur):
         survole = self.bouton_survole(x, y, largeur, hauteur)
-        couleur_fond = 9 if survole else 1
-        couleur_bord = 10 if survole else 7
+        couleur_fond = 7 if survole else 0
+        couleur_texte = 0 if survole else 7
         pyxel.rect(x, y, largeur, hauteur, couleur_fond)
-        pyxel.rectb(x, y, largeur, hauteur, couleur_bord)
+        pyxel.rectb(x, y, largeur, hauteur, couleur_texte)
         pyxel.text(
             x + (largeur - len(texte) * 4) // 2,
             y + (hauteur - 5) // 2,
             texte,
-            couleur_bord,
+            couleur_texte,
         )
 
     def dessiner_menu(self):

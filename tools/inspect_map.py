@@ -1,7 +1,11 @@
 
 import json
+from pathlib import Path
 
-with open("level_1.json", "r", encoding="utf-8") as fichier:
+RACINE_PROJET = Path(__file__).resolve().parent.parent
+FICHIER_CARTE = RACINE_PROJET / "assets" / "maps" / "level_1.json"
+
+with FICHIER_CARTE.open("r", encoding="utf-8") as fichier:
     carte = json.load(fichier)
 
 print("Dimensions :", carte["width"], "x", carte["height"])

@@ -4,10 +4,12 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from PIL import Image
 
-DOSSIER = Path(__file__).parent
-CARTE_SOURCE = DOSSIER / "level_1.json"
-CARTE_SORTIE = DOSSIER / "level_1_pyxel.json"
-IMAGE_SORTIE = DOSSIER / "tileset_compact.png"
+RACINE_PROJET = Path(__file__).resolve().parent.parent
+DOSSIER_CARTES = RACINE_PROJET / "assets" / "maps"
+DOSSIER_SPRITES = RACINE_PROJET / "assets" / "sprites"
+CARTE_SOURCE = DOSSIER_CARTES / "level_1.json"
+CARTE_SORTIE = DOSSIER_CARTES / "level_1_pyxel.json"
+IMAGE_SORTIE = DOSSIER_SPRITES / "tileset_compact.png"
 COULEUR_TRANSPARENCE = (212, 24, 108, 255)
 
 with CARTE_SOURCE.open("r", encoding="utf-8") as f:
@@ -16,7 +18,7 @@ with CARTE_SOURCE.open("r", encoding="utf-8") as f:
 # Lire le tileset externe référencé par Tiled.
 ts = carte["tilesets"][0]
 firstgid = ts["firstgid"]
-fichier_tsx = (DOSSIER / ts["source"]).resolve()
+fichier_tsx = (CARTE_SOURCE.parent / ts["source"]).resolve()
 racine = ET.parse(fichier_tsx).getroot()
 dossier_tsx = fichier_tsx.parent
 
@@ -138,7 +140,7 @@ carte["tilesets"] = [{
     "tileheight": hauteur,
     "tilecount": len(ids_tries),
     "columns": colonnes_compactes,
-    "image": "tileset_compact.png",
+    "image": "../sprites/tileset_compact.png",
     "imagewidth": colonnes_compactes * largeur,
     "imageheight": lignes_compactes * hauteur,
     "margin": 0,

@@ -5,7 +5,9 @@ from pathlib import Path
 import pyxel
 
 
-DOSSIER = Path(__file__).parent
+RACINE_PROJET = Path(__file__).resolve().parent.parent
+DOSSIER_CARTES = RACINE_PROJET / "assets" / "maps"
+DOSSIER_SPRITES = RACINE_PROJET / "assets" / "sprites"
 TAILLE_TILE = 32
 COLONNES_TILESET = 8
 COULEUR_TRANSPARENCE = 8
@@ -18,9 +20,9 @@ NOMS_CALQUES_COLLISION = {
     *NOMS_CALQUES_COLLISION_COMPLETE,
 }
 
-FICHIER_CARTE = DOSSIER / "level_1_pyxel.json"
-FICHIER_COLLISIONS = DOSSIER / "level_1.json"
-FICHIER_TILESET = DOSSIER / "tileset_compact.png"
+FICHIER_CARTE = DOSSIER_CARTES / "level_1_pyxel.json"
+FICHIER_COLLISIONS = DOSSIER_CARTES / "level_1.json"
+FICHIER_TILESET = DOSSIER_SPRITES / "tileset_compact.png"
 
 
 class CarteTiled:

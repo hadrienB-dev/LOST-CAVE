@@ -3,8 +3,9 @@ import json
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-DOSSIER = Path(__file__).parent
-FICHIER_CARTE = DOSSIER / "level_1.json"
+RACINE_PROJET = Path(__file__).resolve().parent.parent
+DOSSIER_CARTES = RACINE_PROJET / "assets" / "maps"
+FICHIER_CARTE = DOSSIER_CARTES / "level_1.json"
 
 with FICHIER_CARTE.open("r", encoding="utf-8") as fichier:
     carte = json.load(fichier)
@@ -16,7 +17,7 @@ for ts in carte["tilesets"]:
         print("Tileset intégré au JSON :", ts)
         continue
 
-    fichier_tsx = (DOSSIER / ts["source"]).resolve()
+    fichier_tsx = (FICHIER_CARTE.parent / ts["source"]).resolve()
     print("Fichier TSX :", fichier_tsx)
 
     if not fichier_tsx.exists():
