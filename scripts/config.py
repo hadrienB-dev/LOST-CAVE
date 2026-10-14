@@ -12,7 +12,6 @@ DEBUT_SPRITESHEET_SAUT = LARGEUR_JOUEUR * 4
 
 VITESSE_DEPLACEMENT = 1
 VITESSE_ANIMATION = 15
-NOMBRE_PAS_INTRO = 2
 TOLERANCE_SAUT_FRAMES = 6
 COULEUR_TRANSPARENCE = 8
 DUREE_FONDU_FRAMES = 24
@@ -46,9 +45,12 @@ FICHIER_SPRITESHEET = "assets/sprites/spritesheet_80x64.png"
 FICHIER_SPRITESHEET_SAUT = "assets/sprites/spritesheet_jump.png"
 FICHIER_FOND = "assets/sprites/level_background_240x135.png"
 FICHIER_FOND_TITRE = "assets/sprites/title_screen_background.png"
+FICHIER_FOND_INTRO = "assets/sprites/background_intro.png"
 FICHIER_SOL = "assets/sprites/acide.png"
+FICHIER_PORTRAIT_HERO = "assets/sprites/hero_mugshot.png"
 FICHIER_MUSIQUE = "assets/audio/lost_cave.ogg"
 FICHIER_MUSIQUE_TITRE = "assets/audio/title_screen.ogg"
+FICHIER_SFX_DIALOGUE = "assets/audio/text_loop_speech.ogg"
 FICHIER_SAUT = "assets/audio/jump.ogg"
 FICHIER_FIN_SAUT = "assets/audio/jump_end.ogg"
 FICHIER_COLLECTE_CRANE = "assets/audio/skull_collect.ogg"
@@ -56,4 +58,3 @@ FICHIER_COLLECTE_CRANE = "assets/audio/skull_collect.ogg"
 # ============================================================
 # JOUEUR
 # ============================================================
-

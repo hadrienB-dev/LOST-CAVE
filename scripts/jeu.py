@@ -4,6 +4,7 @@ import time
 import pyxel
 import pygame
 from .config import *
+from .config import FICHIER_FOND_INTRO, FICHIER_PORTRAIT_HERO
 from .joueur import Joueur
 from .sol import Sol
 from .tiled_map import CarteTiled
@@ -20,19 +21,20 @@ class Jeu:
         self.transition_fondu = None
         self.frame_fondu = 0
         self.phase_intro = None
-        self.frames_marche_intro = 0
         self.dialogue_intro = 0
         self.caracteres_dialogue = 0
         self.frames_caractere_dialogue = 0
         self.fps = 0
         self.frames_ecoulees = 0
-        self.temps_mesure_fps = time.perf_counter()
         pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+        self.son_dialogue = pygame.mixer.Sound(FICHIER_SFX_DIALOGUE)
+        self.canal_dialogue = pygame.mixer.Channel(0)
         pyxel.channels[1].gain = VOLUME_SAUT
         pyxel.sounds[1].pcm(FICHIER_SAUT)
         pyxel.sounds[3].pcm(FICHIER_FIN_SAUT)
         pyxel.sounds[4].pcm(FICHIER_COLLECTE_CRANE)
         self.changer_musique(FICHIER_MUSIQUE_TITRE)
+        self.temps_mesure_fps = time.perf_counter()
 
     def changer_musique(self, fichier):
         pygame.mixer.music.load(fichier)
@@ -60,6 +62,12 @@ class Jeu:
         pyxel.images[BANQUE_SOL].load(
             0, ORIGINE_Y_SOL, FICHIER_SOL
         )
+        self.image_fond_intro = pyxel.Image(
+            LARGEUR_ECRAN, HAUTEUR_ECRAN
+        )
+        self.image_fond_intro.load(0, 0, FICHIER_FOND_INTRO)
+        self.image_portrait_hero = pyxel.Image(73, 104)
+        self.image_portrait_hero.load(0, 0, FICHIER_PORTRAIT_HERO)
 
     def update(self):
         if self.etat == "menu":
@@ -86,23 +94,6 @@ class Jeu:
 
         self.carte.mettre_a_jour_cranes_collectes()
 
-        if self.phase_intro == "marche":
-            self.joueur.update(self.carte, VITESSE_DEPLACEMENT)
-            self.frames_marche_intro += 1
-            if self.joueur.reapparition_demandee:
-                self.phase_intro = None
-                self.transition_fondu = "sortie"
-                self.frame_fondu = 0
-                return
-            if self.frames_marche_intro >= (
-                NOMBRE_PAS_INTRO * VITESSE_ANIMATION
-            ):
-                self.joueur.moving = False
-                self.phase_intro = "dialogue"
-                self.caracteres_dialogue = 0
-                self.frames_caractere_dialogue = 0
-            return
-
         if self.phase_intro == "dialogue":
             if pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_RETURN):
                 nombre_caracteres = sum(
@@ -111,13 +102,17 @@ class Jeu:
                 )
                 if self.caracteres_dialogue < nombre_caracteres:
                     self.caracteres_dialogue = nombre_caracteres
+                    self.arreter_son_dialogue()
                 else:
-                    self.dialogue_intro += 1
-                    if self.dialogue_intro >= len(LIGNES_DIALOGUE_INTRO):
-                        self.phase_intro = None
+                    if self.dialogue_intro == len(LIGNES_DIALOGUE_INTRO) - 1:
+                        self.phase_intro = "fondu_dialogue"
+                        self.transition_fondu = "sortie_intro"
+                        self.frame_fondu = 0
                     else:
+                        self.dialogue_intro += 1
                         self.caracteres_dialogue = 0
                         self.frames_caractere_dialogue = 0
+                        self.lancer_son_dialogue()
                 return
 
             nombre_caracteres = sum(
@@ -132,6 +127,8 @@ class Jeu:
                 ):
                     self.caracteres_dialogue += 1
                     self.frames_caractere_dialogue = 0
+                    if self.caracteres_dialogue >= nombre_caracteres:
+                        self.arreter_son_dialogue()
             return
 
         self.joueur.update(self.carte)
@@ -149,14 +146,6 @@ class Jeu:
         self.gold_skulls += cranes_recoltes
         if cranes_recoltes:
             pyxel.play(2, 4)
-        self.frames_ecoulees += 1
-        temps_actuel = time.perf_counter()
-        duree_mesure = temps_actuel - self.temps_mesure_fps
-
-        if duree_mesure >= 1:
-            self.fps = round(self.frames_ecoulees / duree_mesure)
-            self.frames_ecoulees = 0
-            self.temps_mesure_fps = temps_actuel
 
     def bouton_survole(self, x, y, largeur, hauteur):
         return (
@@ -182,21 +171,31 @@ class Jeu:
 
     def demarrer_jeu(self):
         self.etat = "jeu"
-        self.transition_fondu = "entree"
-        self.frame_fondu = 0
-        self.phase_intro = "marche"
-        self.frames_marche_intro = 0
+        pygame.mixer.music.stop()
+        self.transition_fondu = None
+        self.phase_intro = "dialogue"
         self.dialogue_intro = 0
         self.caracteres_dialogue = 0
         self.frames_caractere_dialogue = 0
-        self.changer_musique(FICHIER_MUSIQUE)
+        self.lancer_son_dialogue()
+
+    def lancer_son_dialogue(self):
+        self.canal_dialogue.play(self.son_dialogue, loops=-1)
+
+    def arreter_son_dialogue(self):
+        self.canal_dialogue.stop()
 
     def update_fondu(self):
         self.frame_fondu += 1
         if self.frame_fondu < DUREE_FONDU_FRAMES:
             return
 
-        if self.transition_fondu == "sortie":
+        if self.transition_fondu == "sortie_intro":
+            self.phase_intro = None
+            self.changer_musique(FICHIER_MUSIQUE)
+            self.transition_fondu = "entree"
+            self.frame_fondu = 0
+        elif self.transition_fondu == "sortie":
             self.joueur.reapparaitre()
             self.transition_fondu = "entree"
             self.frame_fondu = 0
@@ -205,7 +204,7 @@ class Jeu:
             self.frame_fondu = 0
 
     def dessiner_fondu(self):
-        if self.transition_fondu == "sortie":
+        if self.transition_fondu in ("sortie", "sortie_intro"):
             opacite = self.frame_fondu / DUREE_FONDU_FRAMES
         elif self.transition_fondu == "entree":
             opacite = 1 - self.frame_fondu / DUREE_FONDU_FRAMES
@@ -270,6 +269,15 @@ class Jeu:
     def dessiner_dialogue_intro(self):
         lignes = LIGNES_DIALOGUE_INTRO[self.dialogue_intro]
         x, y, largeur, hauteur = 8, 96, LARGEUR_ECRAN - 16, 32
+        pyxel.blt(
+            0, 0, self.image_fond_intro,
+            0, 0, LARGEUR_ECRAN, HAUTEUR_ECRAN,
+        )
+        pyxel.blt(
+            x, 37, self.image_portrait_hero,
+            0, 0,
+            43, 61, COULEUR_TRANSPARENCE,
+        )
         pyxel.rect(x, y, largeur, hauteur, 0)
         pyxel.rectb(x, y, largeur, hauteur, 7)
 
@@ -284,6 +292,14 @@ class Jeu:
             pyxel.text(x + largeur - 30, y + hauteur - 7, "ESPACE", 7)
 
     def draw(self):
+        self.frames_ecoulees += 1
+        temps_actuel = time.perf_counter()
+        duree_mesure = temps_actuel - self.temps_mesure_fps
+        if duree_mesure >= 1:
+            self.fps = self.frames_ecoulees / duree_mesure
+            self.frames_ecoulees = 0
+            self.temps_mesure_fps = temps_actuel
+
         pyxel.cls(0)
 
         if self.etat == "menu":
@@ -294,6 +310,11 @@ class Jeu:
             return
         if self.etat == "touches":
             self.dessiner_touches()
+            return
+
+        if self.phase_intro in ("dialogue", "fondu_dialogue"):
+            self.dessiner_dialogue_intro()
+            self.dessiner_fondu()
             return
 
         # Afficher le fond déjà chargé, puis le niveau par-dessus.
@@ -332,14 +353,10 @@ class Jeu:
 
         # 4. Afficher les FPS et les dimensions de la carte chargée
         pyxel.rect(2, 2, 43, 9, 0)
-        affichage_fps = f"FPS: {self.fps}" if self.fps else "FPS: --"
+        affichage_fps = f"{self.fps:.1f} FPS" if self.fps else "-- FPS"
         pyxel.text(4, 3, affichage_fps, 7)
         compteur = f"SKULLS: {self.gold_skulls}"
         compteur_x = pyxel.width - len(compteur) * 4 - 4
         pyxel.rect(compteur_x - 2, 2, len(compteur) * 4 + 4, 9, 0)
         pyxel.text(compteur_x, 4, compteur, 10)
         self.dessiner_fondu()
-        if self.phase_intro == "dialogue":
-            self.dessiner_dialogue_intro()
-
-
