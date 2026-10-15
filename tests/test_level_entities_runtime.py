@@ -267,6 +267,25 @@ class LevelEntitiesRuntimeTests(unittest.TestCase):
         load_sound.assert_called_once()
         sound.play.assert_called_once_with()
 
+    def test_non_killable_enemy_plays_configured_sound_on_contact(self):
+        entities = EntitesNiveau(self.map_path)
+        enemy = entities.entites[0]
+        enemy["killable"] = False
+        enemy["effects"]["sound"] = "assets/audio/kill_ennemy.ogg"
+        player = SimpleNamespace(
+            x=100,
+            y=192,
+            velocity_y=0,
+            reapparition_demandee=False,
+        )
+        sound = unittest.mock.Mock()
+
+        with patch("scripts.entites.pygame.mixer.Sound", return_value=sound):
+            entities.mettre_a_jour(player)
+
+        self.assertTrue(player.reapparition_demandee)
+        sound.play.assert_called_once_with()
+
     def test_non_killable_enemy_still_damages_player_from_above(self):
         entities = EntitesNiveau(self.map_path)
         entities.entites[0]["killable"] = False

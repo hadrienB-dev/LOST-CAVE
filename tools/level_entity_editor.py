@@ -1,6 +1,7 @@
 """Editeur de placements et de comportements pour les entites d'un niveau."""
 
 import argparse
+import copy
 import json
 import math
 import os
@@ -106,6 +107,15 @@ def default_entity(category, number, x=0, y=0):
         },
         "custom_data": {},
     }
+
+
+def duplicate_entity(entity, number, offset=TILE_SIZE):
+    duplicate = copy.deepcopy(entity)
+    duplicate["id"] = f"{duplicate.get('category', 'special')}-{number}"
+    duplicate["name"] = f"{duplicate.get('name', 'Entité')} (copie)"
+    duplicate["x"] = max(0, duplicate.get("x", 0) + offset)
+    duplicate["y"] = max(0, duplicate.get("y", 0) + offset)
+    return duplicate
 
 
 def normalize_entity(entity, index):
@@ -384,6 +394,8 @@ class LevelEntityEditor:
         self.map_data = None
         self.entities = []
         self.selected_id = None
+        self.entity_clipboard = None
+        self.entity_paste_count = 0
         self.placement_category = None
         self.dirty = False
         self.loading_form = False
@@ -536,6 +548,19 @@ class LevelEntityEditor:
         self.entity_list.pack(side="left", fill="both", expand=True)
         list_scroll.pack(side="right", fill="y")
         self.entity_list.bind("<<ListboxSelect>>", self._list_selection_changed)
+        self.entity_list.bind("<Button-3>", self._show_entity_context_menu)
+        self.entity_list.bind("<Control-c>", self._copy_selected_entity)
+        self.entity_list.bind("<Control-v>", self._paste_entity)
+        self.entity_context_menu = tk.Menu(self.root, tearoff=False)
+        self.entity_context_menu.add_command(
+            label="Copier", command=self._copy_selected_entity
+        )
+        self.entity_context_menu.add_command(
+            label="Coller", command=self._paste_entity
+        )
+        self.entity_context_menu.add_command(
+            label="Dupliquer", command=self.duplicate_selected_entity
+        )
 
         self.canvas = tk.Canvas(
             center,
@@ -1515,6 +1540,66 @@ class LevelEntityEditor:
         index = selection[0]
         if index < len(self.entities):
             self._select_entity(self.entities[index]["id"])
+
+    def _show_entity_context_menu(self, event):
+        index = self.entity_list.nearest(event.y)
+        bounds = self.entity_list.bbox(index) if index < len(self.entities) else None
+        if bounds and bounds[1] <= event.y <= bounds[1] + bounds[3]:
+            self.entity_list.selection_clear(0, "end")
+            self.entity_list.selection_set(index)
+            if not self._select_entity(self.entities[index]["id"]):
+                self._refresh_list()
+        self.entity_context_menu.entryconfigure(
+            "Copier", state="normal" if self.selected_id else "disabled"
+        )
+        self.entity_context_menu.entryconfigure(
+            "Dupliquer", state="normal" if self.selected_id else "disabled"
+        )
+        self.entity_context_menu.entryconfigure(
+            "Coller", state="normal" if self.entity_clipboard else "disabled"
+        )
+        self.entity_context_menu.tk_popup(event.x_root, event.y_root)
+        return "break"
+
+    def _copy_selected_entity(self, _event=None):
+        if not self.selected_id or not self._save_current_form():
+            return "break"
+        entity = self._entity_by_id(self.selected_id)
+        if entity is not None:
+            self.entity_clipboard = copy.deepcopy(entity)
+            self.entity_paste_count = 0
+            self.status_var.set(f"Copié : {entity.get('name', entity['id'])}")
+        return "break"
+
+    def _paste_entity(self, _event=None):
+        if self.entity_clipboard is None or not self._save_current_form():
+            return "break"
+        category = self.entity_clipboard.get("category", "special")
+        used_ids = {entity["id"] for entity in self.entities}
+        number = 1
+        while f"{category}-{number}" in used_ids:
+            number += 1
+        offset = TILE_SIZE * (self.entity_paste_count + 1)
+        entity = duplicate_entity(self.entity_clipboard, number, offset)
+        self.entity_paste_count += 1
+        self.entities.append(entity)
+        self.selected_id = None
+        self.dirty = True
+        self._refresh_list()
+        self._select_entity(entity["id"])
+        self._update_title()
+        self._render_canvas()
+        return "break"
+
+    def duplicate_selected_entity(self, _event=None):
+        if not self.selected_id or not self._save_current_form():
+            return "break"
+        entity = self._entity_by_id(self.selected_id)
+        if entity is None:
+            return "break"
+        self.entity_clipboard = copy.deepcopy(entity)
+        self.entity_paste_count = 0
+        return self._paste_entity()
 
     def _entity_by_id(self, entity_id):
         return next((entity for entity in self.entities if entity["id"] == entity_id), None)

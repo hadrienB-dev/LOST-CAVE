@@ -269,6 +269,7 @@ class EntitesNiveau:
                 and effet.get("action", "damage") == "damage"
                 and effet.get("target", "player") in ("player", "all")
             ):
+                self._jouer_son_effet(entite)
                 joueur.reapparition_demandee = True
 
     def _mettre_a_jour_mouvement(self, entite, joueur):

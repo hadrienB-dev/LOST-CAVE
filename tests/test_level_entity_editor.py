@@ -5,6 +5,7 @@ from pathlib import Path
 
 from tools.level_entity_editor import (
     default_entity,
+    duplicate_entity,
     entities_file_for,
     load_document,
     normalize_entity,
@@ -14,6 +15,25 @@ from tools.level_entity_editor import (
 
 
 class LevelEntityDocumentTests(unittest.TestCase):
+    def test_duplicate_entity_copies_all_settings_and_nested_values(self):
+        entity = default_entity("enemy", 3, 64, 96)
+        entity["animation"]["direction_settings"]["death"]["frame_delay_ms"] = 50
+        entity["effects"]["sound"] = "assets/audio/kill_ennemy.ogg"
+        entity["custom_data"] = {"loot": ["key"]}
+
+        duplicate = duplicate_entity(entity, 4)
+        duplicate["animation"]["direction_settings"]["death"]["frame_delay_ms"] = 80
+        duplicate["custom_data"]["loot"].append("gem")
+
+        self.assertEqual(duplicate["id"], "enemy-4")
+        self.assertEqual(duplicate["name"], "Ennemi 3 (copie)")
+        self.assertEqual((duplicate["x"], duplicate["y"]), (96, 128))
+        self.assertEqual(duplicate["effects"]["sound"], "assets/audio/kill_ennemy.ogg")
+        self.assertEqual(
+            entity["animation"]["direction_settings"]["death"]["frame_delay_ms"], 50
+        )
+        self.assertEqual(entity["custom_data"], {"loot": ["key"]})
+
     def test_default_entity_has_editable_animation_movement_and_effects(self):
         entity = default_entity("enemy", 3, 64, 96)
 

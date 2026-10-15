@@ -59,6 +59,9 @@ Dans l'editeur, cliquer sur **Ennemi**, **Objet** ou **Special**, puis sur la
 carte pour placer une entite. Cliquer-glisser une entite la deplace. Les
 positions sont exprimees en pixels; la grille permet de les aligner sur les
 cases de 32 pixels. `Ctrl+S` enregistre et `Echap` annule le mode de placement.
+Dans la liste des entites, le menu contextuel permet de copier, coller ou
+dupliquer une entite avec tous ses parametres; `Ctrl+C` et `Ctrl+V` copient et
+collent egalement l'entite selectionnee.
 
 ## Organisation
 
