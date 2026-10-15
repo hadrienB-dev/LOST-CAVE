@@ -6,6 +6,7 @@ import pygame
 from .config import *
 from .config import FICHIER_FOND_INTRO, FICHIER_PORTRAIT_HERO
 from .joueur import Joueur
+from .entites import EntitesNiveau
 from .sol import Sol
 from .tiled_map import CarteTiled
 
@@ -13,6 +14,7 @@ class Jeu:
     def __init__(self):
         self.charger_ressources()
         self.carte = CarteTiled()
+        self.entites = EntitesNiveau()
 
         self.etat = "menu"
         self.joueur = Joueur(self.carte)
@@ -131,7 +133,12 @@ class Jeu:
                         self.arreter_son_dialogue()
             return
 
+        ancienne_y = self.joueur.y
+        ancienne_vitesse_y = self.joueur.velocity_y
         self.joueur.update(self.carte)
+        self.entites.mettre_a_jour(
+            self.joueur, ancienne_y, ancienne_vitesse_y
+        )
         if self.joueur.reapparition_demandee:
             self.transition_fondu = "sortie"
             self.frame_fondu = 0
@@ -350,6 +357,7 @@ class Jeu:
 
         # 3. Dessiner les calques Tiled suffixés par "_2" devant le joueur.
         self.carte.dessiner(camera_x, camera_y, devant=True)
+        self.entites.dessiner(camera_x, camera_y)
 
         # 4. Afficher les FPS et les dimensions de la carte chargée
         pyxel.rect(2, 2, 43, 9, 0)

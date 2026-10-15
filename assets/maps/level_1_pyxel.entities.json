@@ -1,0 +1,172 @@
+{
+  "format_version": 1,
+  "map": "level_1_pyxel.json",
+  "tile_size": 32,
+  "entities": [
+    {
+      "id": "enemy-1",
+      "name": "Ennemi 1",
+      "category": "enemy",
+      "x": 160,
+      "y": 192,
+      "width": 32,
+      "height": 32,
+      "layer": 0,
+      "hitbox": {
+        "x": 4,
+        "y": 16,
+        "width": 24,
+        "height": 16
+      },
+      "killable": true,
+      "visible": true,
+      "enabled": true,
+      "collision": true,
+      "tags": [],
+      "sprite": "assets\\sprites\\monster_1.png",
+      "animation": {
+        "frame_width": 32,
+        "frame_height": 32,
+        "columns": 3,
+        "frame_count": 2,
+        "row": 1,
+        "fps": 5.0,
+        "frame_delay_ms": 200.0,
+        "sequences": {
+          "left": [
+            {
+              "column": 0,
+              "row": 0
+            },
+            {
+              "column": 1,
+              "row": 0
+            }
+          ],
+          "right": [
+            {
+              "column": 2,
+              "row": 0
+            },
+            {
+              "column": 3,
+              "row": 0
+            }
+          ],
+          "death": [
+            {
+              "column": 0,
+              "row": 1
+            },
+            {
+              "column": 1,
+              "row": 1
+            },
+            {
+              "column": 2,
+              "row": 1
+            },
+            {
+              "column": 3,
+              "row": 1
+            },
+            {
+              "column": 0,
+              "row": 2
+            },
+            {
+              "column": 1,
+              "row": 2
+            },
+            {
+              "column": 2,
+              "row": 2
+            },
+            {
+              "column": 3,
+              "row": 2
+            },
+            {
+              "column": 0,
+              "row": 3
+            },
+            {
+              "column": 1,
+              "row": 3
+            },
+            {
+              "column": 2,
+              "row": 3
+            },
+            {
+              "column": 3,
+              "row": 3
+            }
+          ]
+        },
+        "direction_settings": {
+          "left": {
+            "frame_delay_ms": null,
+            "flip_x": null,
+            "flip_y": null
+          },
+          "right": {
+            "frame_delay_ms": null,
+            "flip_x": null,
+            "flip_y": null
+          },
+          "death": {
+            "frame_delay_ms": 75.0,
+            "flip_x": "direction_right",
+            "flip_y": null
+          }
+        },
+        "loop": true,
+        "offset_x": 0,
+        "offset_y": 0,
+        "flip_x": false,
+        "flip_y": false
+      },
+      "movement": {
+        "type": "steps",
+        "axis": "x",
+        "speed": 0.4,
+        "range": 32.0,
+        "waypoints": [],
+        "steps": [
+          {
+            "direction": "left",
+            "steps": 32.0
+          },
+          {
+            "direction": "left",
+            "steps": 32.0
+          },
+          {
+            "direction": "right",
+            "steps": 32.0
+          },
+          {
+            "direction": "right",
+            "steps": 32.0
+          }
+        ],
+        "gravity": true,
+        "bounce": true,
+        "facing": "right"
+      },
+      "effects": {
+        "trigger": "contact",
+        "action": "damage",
+        "amount": 1.0,
+        "duration": 0.0,
+        "radius": 0.0,
+        "cooldown": 0.0,
+        "one_shot": false,
+        "sound": "assets\\audio\\kill_ennemy.ogg",
+        "target": "player"
+      },
+      "custom_data": {}
+    }
+  ]
+}
